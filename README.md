@@ -1,9 +1,11 @@
 # tasklite
-A quick task tracking application with no frills and printable day sheets.  
+A quick task tracking application with no frills and printable day sheets.  This all came about when I made a spreadsheet with far too much automation to take care of tracking tasks, then being unable to find something that could replace it.
+
 Simple interface, supports mobile (ish), along with the main requirements I had:
 - Recurring tasks
 - Totalling the time estimate for each day
 - Easily move due dates to other days
+- High/Medium/Low/Info prioritization
 - Quick entry via keyboard shortcuts:
     - `N` opens new task creation
     - `Ctrl+enter` saves the currently open task
@@ -14,6 +16,7 @@ Simple interface, supports mobile (ish), along with the main requirements I had:
 - The "Move Forward" button moves all non-completed tasks from the current day to tomorrow
 - New tasks default to being due tomorrow
 - "Info" level tasks do not count to the day's time total
+- Sort order is Priority -> Time Estimate (High -> Low) -> Alphabetical
 - The print sheet is made for black and white printers
 
 ## Things to work on:
