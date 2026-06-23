@@ -23,6 +23,8 @@ Simple interface, supports mobile (ish), along with the main requirements I had:
 - Need arrows to navigate forward/backward in the main view without having to hit "Jump"
 - Need an "all tasks" view that shows all tasks currently entered into the system, sorted by due date (and only showing the next instance of a recurring task)
 - Need the ability to filter out "Info" level tasks onto another page when printing (as an option)
+- If a recurring task is pushed to the next day, don't update the recurrence; clone it and keep the original recurrence
+- Hide completed items on the printed sheet
 - Color for the print sheet might be nice, but I don't have a color printer, so I don't really care
 
 Yes, this is 100% vibe-coded from Gemini as I am *not* a webdev by any stretch of the imagination.  Currently have it set up for building via docker and it will create its own data file to act as a database.  ***There is no authentication or security of any kind***, so I wouldn't go sticking this out on the open internet.  This was built to live in my cluster to help with my work, so please feel free to mutate/change/fork/add/merge/pull/whatever and I'll look at potentially adding it into this repo.
