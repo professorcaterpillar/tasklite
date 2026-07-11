@@ -4,15 +4,17 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Setup directories and JSON path
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'tasks.json');
 
 if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR);
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (err) {
+    console.error('Failed to create data directory:', err);
+  }
 }
 
-// Helper: Read tasks
 function getTasks() {
   if (!fs.existsSync(DATA_FILE)) {
     return [];
@@ -26,30 +28,36 @@ function getTasks() {
   }
 }
 
-// Helper: Save tasks
 function saveTasks(tasks) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(tasks, null, 2), 'utf8');
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(tasks, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save tasks to file:', err);
+  }
 }
 
-// Date helper
 function addDays(dateStr, days) {
   const d = new Date(dateStr + 'T12:00:00');
   d.setDate(d.getDate() + days);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// DB Pruning and Auto Rollover Service
 function runDatabaseMaintenance() {
   const tasks = getTasks();
   const today = new Date();
+  
+  // Note: This runs in Docker's UTC time, which is fine because we are only
+  // using it for long-term historical data cleanup (7 days / 1000 days), 
+  // not sensitive day-to-day rollovers!
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   
   const sevenDaysAgoStr = addDays(todayStr, -7);
-  const thirtyDaysAgoStr = addDays(todayStr, -30);
+  const historyCutoffStr = addDays(todayStr, -1000); 
   
   let databaseChanged = false;
 
   const cleanedTasks = tasks.filter(task => {
+    // Clean up one-time completed tasks older than 7 days
     if (task.recurrence === 'none' && task.completed && task.dueDate < sevenDaysAgoStr) {
       databaseChanged = true;
       return false; 
@@ -57,9 +65,10 @@ function runDatabaseMaintenance() {
     return true;
   }).map(task => {
     let updated = { ...task };
-    
+
+    // Clean up recurring completion history older than 1000 days
     if (task.recurrence !== 'none' && task.completedDates && task.completedDates.length > 0) {
-      const trimmed = task.completedDates.filter(d => d >= thirtyDaysAgoStr);
+      const trimmed = task.completedDates.filter(d => d >= historyCutoffStr);
       if (trimmed.length !== task.completedDates.length) {
         updated.completedDates = trimmed;
         databaseChanged = true;
@@ -75,7 +84,6 @@ function runDatabaseMaintenance() {
 
 app.use(express.json());
 
-// Run automated cleanup routine on every fetch to keep the DB perfectly clean
 app.use((req, res, next) => {
   try {
     runDatabaseMaintenance();
@@ -85,7 +93,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Endpoints
 app.get('/api/tasks', (req, res) => {
   res.json(getTasks());
 });
@@ -113,7 +120,6 @@ app.delete('/api/tasks/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Serve frontend build static files
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
@@ -121,5 +127,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Task Tracker running locally at http://localhost:${PORT}`);
+  console.log(`Task Tracker running locally at http://0.0.0.0:${PORT}`);
 });

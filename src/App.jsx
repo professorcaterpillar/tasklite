@@ -144,8 +144,19 @@ const getProjectedTasksForColumn = (colDateStr, allTasks, todayStr) => {
           }
           
           if (colDateStr === todayStr) {
+              // Dynamic lookback to prevent the projection from losing long-interval tasks
+              // and safely avoiding any server deletion boundaries
+              let lookbackDays = 21;
+              if (['weekly', 'weekdays', 'weekends'].includes(task.recurrence)) {
+                  lookbackDays = Math.max(28, interval * 14);
+              } else if (task.recurrence === 'monthly' || task.recurrence.startsWith('last_')) {
+                  lookbackDays = Math.max(60, interval * 40);
+              } else if (task.recurrence === 'yearly') {
+                  lookbackDays = Math.max(370, interval * 370);
+              }
+
               let lookbackStart = new Date(todayStr + 'T12:00:00');
-              lookbackStart.setDate(lookbackStart.getDate() - 30); 
+              lookbackStart.setDate(lookbackStart.getDate() - lookbackDays); 
               const origDate = new Date(task.dueDate + 'T12:00:00');
               if (origDate > lookbackStart) lookbackStart = origDate;
               
@@ -230,7 +241,6 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         
-        // --- NEW: Client-Side Rollover ---
         // Process rollovers using the local browser's timezone
         let needsBackendSync = false;
         const processedTasks = data.map(t => {
